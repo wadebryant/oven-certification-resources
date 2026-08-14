@@ -6,14 +6,21 @@
   <meta name="theme-color" content="#006491">
   <title>PDF Viewer | Oven Certification Resources</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="viewer.css?v=20260814-pinch">
+  <link rel="stylesheet" href="viewer.css?v=20260814-pages">
 </head>
 <body class="viewer-body">
   <header class="viewer-toolbar">
     <a class="viewer-back" href="index.html">← Resources</a>
     <div class="viewer-title-wrap">
       <strong id="viewerTitle">PDF</strong>
-      <span id="pageStatus">Loading…</span>
+      <div class="viewer-page-status" aria-label="PDF page navigation">
+        <span>Page</span>
+        <label class="viewer-sr-only" for="pageSelect">Select page</label>
+        <select id="pageSelect" aria-label="Select page" disabled>
+          <option value="1">1</option>
+        </select>
+        <span id="pageTotal">of …</span>
+      </div>
     </div>
     <div class="viewer-controls">
       <button id="prevPage" type="button" aria-label="Previous page">‹</button>
@@ -27,6 +34,6 @@
     <strong>Unable to display this PDF.</strong>
     <p>Please return to Resources and try again.</p>
   </div>
-  <script type="module" src="viewer.js?v=20260814-pinch"></script>
+  <script type="module" src="viewer.js?v=20260814-pages"></script>
 </body>
 </html>
