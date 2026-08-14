@@ -27,7 +27,8 @@ const viewer = document.getElementById('pdfViewer');
 const loading = document.getElementById('viewerLoading');
 const errorBox = document.getElementById('viewerError');
 const titleEl = document.getElementById('viewerTitle');
-const statusEl = document.getElementById('pageStatus');
+const pageSelect = document.getElementById('pageSelect');
+const pageTotal = document.getElementById('pageTotal');
 const prevBtn = document.getElementById('prevPage');
 const nextBtn = document.getElementById('nextPage');
 
@@ -57,6 +58,8 @@ const MAX_ZOOM = 3;
 if (!config) {
   loading.hidden = true;
   errorBox.hidden = false;
+  pageSelect.disabled = true;
+  pageTotal.textContent = 'unavailable';
   throw new Error('Unknown document');
 }
 
@@ -67,10 +70,33 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function populatePageSelector() {
+  pageSelect.replaceChildren();
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const option = document.createElement('option');
+    option.value = String(pageNumber);
+    option.textContent = String(pageNumber);
+    pageSelect.appendChild(option);
+  }
+  pageSelect.disabled = false;
+}
+
 function updateStatus() {
-  statusEl.textContent = pdf ? `Page ${currentPage} of ${pdf.numPages}` : 'Loading…';
+  if (pdf) {
+    pageSelect.value = String(currentPage);
+    pageTotal.textContent = `of ${pdf.numPages}`;
+  } else {
+    pageSelect.disabled = true;
+    pageTotal.textContent = 'of …';
+  }
   prevBtn.disabled = !pdf || currentPage <= 1;
   nextBtn.disabled = !pdf || currentPage >= pdf.numPages;
+}
+
+function showLoadError() {
+  pageSelect.disabled = true;
+  pageTotal.textContent = 'unavailable';
+  errorBox.hidden = false;
 }
 
 async function resolveDestination(dest) {
@@ -134,7 +160,7 @@ async function renderPage(pageNumber) {
   const token = ++renderToken;
   const target = Math.max(1, Math.min(pageNumber, pdf.numPages));
   currentPage = target;
-  statusEl.textContent = `Loading page ${target} of ${pdf.numPages}…`;
+  pageSelect.value = String(target);
   prevBtn.disabled = target <= 1;
   nextBtn.disabled = target >= pdf.numPages;
 
@@ -188,8 +214,7 @@ async function renderPage(pageNumber) {
     if (token !== renderToken) return;
     console.error(err);
     viewer.replaceChildren();
-    errorBox.hidden = false;
-    statusEl.textContent = 'Unable to load';
+    showLoadError();
   }
 }
 
@@ -383,19 +408,26 @@ async function start() {
       disableAutoFetch: true
     });
     pdf = await task.promise;
+    populatePageSelector();
     if (loading?.isConnected) loading.remove();
     updateStatus();
     await renderPage(1);
   } catch (err) {
     console.error(err);
     if (loading) loading.hidden = true;
-    errorBox.hidden = false;
-    statusEl.textContent = 'Unable to load';
+    showLoadError();
   }
 }
 
 prevBtn.addEventListener('click', () => goToPage(currentPage - 1));
 nextBtn.addEventListener('click', () => goToPage(currentPage + 1));
+pageSelect.addEventListener('change', () => {
+  if (!pdf) return;
+  const target = Number.parseInt(pageSelect.value, 10);
+  if (Number.isInteger(target) && target >= 1 && target <= pdf.numPages && target !== currentPage) {
+    goToPage(target);
+  }
+});
 
 window.addEventListener('resize', () => {
   if (!pdf || pinchActive) return;
