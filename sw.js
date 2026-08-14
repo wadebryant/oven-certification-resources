@@ -1,13 +1,1 @@
-const CACHE = 'oven-resources-v1';
-const SHELL = ['/', '/index.html', '/styles.css', '/install.js', '/form.html', '/form.js', '/manifest.webmanifest', '/icon.svg'];
-self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).catch(() => {}));
-  self.skipWaiting();
-});
-self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim());
-});
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
-});
+const CACHE='oven-resources-v2';const SHELL=['/','/index.html','/styles.css','/install.js','/form.html','/form.js','/viewer.html','/viewer.css','/viewer.js','/manifest.webmanifest','/icon.svg'];self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(()=>{}));self.skipWaiting();});self.addEventListener('activate',event=>{event.waitUntil(self.clients.claim());});self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(fetch(event.request).catch(()=>caches.match(event.request)));});
