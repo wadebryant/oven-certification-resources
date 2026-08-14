@@ -1,28 +1,32 @@
 {
   "cleanUrls": true,
-  "redirects": [
+  "rewrites": [
     {
       "source": "/pdfs/oven-fingers-interactive.pdf",
-      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Fingers%20Interactive%20Resource%20July%202026.pdf",
-      "permanent": false
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Fingers%20Interactive%20Resource%20July%202026.pdf"
     },
     {
       "source": "/pdfs/oven-certification-guide.pdf",
-      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Guide%20July%202026.pdf",
-      "permanent": false
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Guide%20July%202026.pdf"
     },
     {
       "source": "/pdfs/oven-certification-form.pdf",
-      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Form%20July%202026.pdf",
-      "permanent": false
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Form%20July%202026.pdf"
     },
     {
       "source": "/pdfs/oven-certification-faqs.pdf",
-      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Visit%20FAQs.pdf",
-      "permanent": false
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Visit%20FAQs.pdf"
     }
   ],
   "headers": [
+    {
+      "source": "/pdfs/(.*)",
+      "headers": [
+        { "key": "Content-Type", "value": "application/pdf" },
+        { "key": "Content-Disposition", "value": "inline" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [
