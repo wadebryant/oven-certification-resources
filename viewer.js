@@ -31,10 +31,11 @@ const statusEl = document.getElementById('pageStatus');
 const prevBtn = document.getElementById('prevPage');
 const nextBtn = document.getElementById('nextPage');
 
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let pdf = null;
 let currentPage = 1;
-const pageEls = new Map();
-const rendered = new Set();
+let renderToken = 0;
+let resizeTimer = null;
 
 if (!config) {
   loading.hidden = true;
@@ -45,21 +46,10 @@ if (!config) {
 titleEl.textContent = config.title;
 document.title = `${config.title} | Oven Certification Resources`;
 
-function updateStatus(page = currentPage) {
-  currentPage = Math.max(1, Math.min(page, pdf?.numPages || 1));
+function updateStatus() {
   statusEl.textContent = pdf ? `Page ${currentPage} of ${pdf.numPages}` : 'Loading…';
-  prevBtn.disabled = currentPage <= 1;
+  prevBtn.disabled = !pdf || currentPage <= 1;
   nextBtn.disabled = !pdf || currentPage >= pdf.numPages;
-}
-
-async function goToPage(pageNumber) {
-  const target = Math.max(1, Math.min(pageNumber, pdf.numPages));
-  const el = pageEls.get(target);
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    updateStatus(target);
-    await renderPage(target);
-  }
 }
 
 async function resolveDestination(dest) {
@@ -72,10 +62,11 @@ async function resolveDestination(dest) {
   }
 }
 
-async function addAnnotations(page, viewport, layer, pageNumber) {
+async function addAnnotations(page, viewport, layer) {
   const annotations = await page.getAnnotations({ intent: 'display' });
   for (const ann of annotations) {
     if (ann.subtype !== 'Link' || !ann.rect) continue;
+
     const rect = viewport.convertToViewportRectangle(ann.rect);
     const left = Math.min(rect[0], rect[2]);
     const top = Math.min(rect[1], rect[3]);
@@ -98,91 +89,108 @@ async function addAnnotations(page, viewport, layer, pageNumber) {
       link.addEventListener('click', async (event) => {
         event.preventDefault();
         const targetPage = await resolveDestination(ann.dest);
-        if (targetPage) goToPage(targetPage);
+        if (targetPage) await goToPage(targetPage);
       });
     } else {
       continue;
     }
+
     layer.appendChild(link);
   }
 }
 
+function releaseOldCanvas() {
+  const oldCanvas = viewer.querySelector('canvas');
+  if (oldCanvas) {
+    oldCanvas.width = 1;
+    oldCanvas.height = 1;
+  }
+}
+
 async function renderPage(pageNumber) {
-  if (rendered.has(pageNumber)) return;
-  rendered.add(pageNumber);
-  const shell = pageEls.get(pageNumber);
-  if (!shell) return;
+  if (!pdf) return;
+
+  const token = ++renderToken;
+  const target = Math.max(1, Math.min(pageNumber, pdf.numPages));
+  currentPage = target;
+  statusEl.textContent = `Loading page ${target} of ${pdf.numPages}…`;
+  prevBtn.disabled = target <= 1;
+  nextBtn.disabled = target >= pdf.numPages;
 
   try {
-    const page = await pdf.getPage(pageNumber);
+    const page = await pdf.getPage(target);
+    if (token !== renderToken) return;
+
     const base = page.getViewport({ scale: 1 });
-    const available = Math.max(280, Math.min(1000, viewer.clientWidth - 24));
+    const available = Math.max(280, Math.min(900, viewer.clientWidth - 12));
     const scale = available / base.width;
     const viewport = page.getViewport({ scale });
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
+    // iPhones have very high device-pixel ratios. Capping the backing canvas keeps
+    // memory usage low while remaining sharp enough for phone viewing.
+    const dprCap = isIOS ? 1.25 : 1.6;
+    const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
+
+    releaseOldCanvas();
+
+    const shell = document.createElement('section');
+    shell.className = 'pdf-page single-pdf-page';
+    shell.setAttribute('aria-label', `Page ${target}`);
     shell.style.width = `${viewport.width}px`;
     shell.style.height = `${viewport.height}px`;
+
     const canvas = document.createElement('canvas');
-    canvas.width = Math.floor(viewport.width * dpr);
-    canvas.height = Math.floor(viewport.height * dpr);
+    canvas.width = Math.max(1, Math.floor(viewport.width * dpr));
+    canvas.height = Math.max(1, Math.floor(viewport.height * dpr));
     canvas.style.width = `${viewport.width}px`;
     canvas.style.height = `${viewport.height}px`;
-    const ctx = canvas.getContext('2d');
+
     const annotationLayer = document.createElement('div');
     annotationLayer.className = 'pdf-annotation-layer';
     annotationLayer.style.width = `${viewport.width}px`;
     annotationLayer.style.height = `${viewport.height}px`;
-    shell.replaceChildren(canvas, annotationLayer);
 
-    await page.render({ canvasContext: ctx, viewport, transform: dpr === 1 ? null : [dpr, 0, 0, dpr, 0, 0] }).promise;
-    await addAnnotations(page, viewport, annotationLayer, pageNumber);
+    shell.append(canvas, annotationLayer);
+    viewer.replaceChildren(shell);
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    await page.render({
+      canvasContext: ctx,
+      viewport,
+      transform: dpr === 1 ? null : [dpr, 0, 0, dpr, 0, 0]
+    }).promise;
+
+    if (token !== renderToken) return;
+    await addAnnotations(page, viewport, annotationLayer);
+    updateStatus();
   } catch (err) {
-    rendered.delete(pageNumber);
-    shell.textContent = `Unable to render page ${pageNumber}.`;
+    if (token !== renderToken) return;
+    console.error(err);
+    viewer.replaceChildren();
+    errorBox.hidden = false;
+    statusEl.textContent = 'Unable to load';
   }
 }
 
-function observePages() {
-  const observer = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) {
-        const pageNumber = Number(entry.target.dataset.page);
-        renderPage(pageNumber);
-        updateStatus(pageNumber);
-      }
-    }
-  }, { rootMargin: '900px 0px', threshold: 0.08 });
-
-  for (const el of pageEls.values()) observer.observe(el);
+async function goToPage(pageNumber) {
+  await renderPage(pageNumber);
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 async function start() {
   try {
-    const task = pdfjsLib.getDocument({ url: config.url, cMapPacked: true });
+    const task = pdfjsLib.getDocument({
+      url: config.url,
+      cMapPacked: true,
+      disableAutoFetch: true
+    });
     pdf = await task.promise;
-    loading.remove();
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const base = page.getViewport({ scale: 1 });
-      const available = Math.max(280, Math.min(1000, viewer.clientWidth - 24));
-      const scale = available / base.width;
-      const shell = document.createElement('section');
-      shell.className = 'pdf-page';
-      shell.dataset.page = String(i);
-      shell.setAttribute('aria-label', `Page ${i}`);
-      shell.style.width = `${base.width * scale}px`;
-      shell.style.height = `${base.height * scale}px`;
-      shell.innerHTML = '<div class="page-placeholder">Loading page…</div>';
-      viewer.appendChild(shell);
-      pageEls.set(i, shell);
-    }
-    updateStatus(1);
-    observePages();
-    renderPage(1);
+    if (loading?.isConnected) loading.remove();
+    updateStatus();
+    await renderPage(1);
   } catch (err) {
     console.error(err);
-    loading.hidden = true;
+    if (loading) loading.hidden = true;
     errorBox.hidden = false;
     statusEl.textContent = 'Unable to load';
   }
@@ -190,5 +198,11 @@ async function start() {
 
 prevBtn.addEventListener('click', () => goToPage(currentPage - 1));
 nextBtn.addEventListener('click', () => goToPage(currentPage + 1));
+
+window.addEventListener('resize', () => {
+  if (!pdf) return;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => renderPage(currentPage), 250);
+});
 
 start();
