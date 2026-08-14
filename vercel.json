@@ -16,6 +16,10 @@
     {
       "source": "/pdfs/oven-certification-faqs.pdf",
       "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Visit%20FAQs.pdf"
+    },
+    {
+      "source": "/downloads/oven-certification-form.pdf",
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Form%20July%202026.pdf"
     }
   ],
   "headers": [
@@ -24,6 +28,14 @@
       "headers": [
         { "key": "Content-Type", "value": "application/pdf" },
         { "key": "Content-Disposition", "value": "inline" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    },
+    {
+      "source": "/downloads/oven-certification-form.pdf",
+      "headers": [
+        { "key": "Content-Type", "value": "application/pdf" },
+        { "key": "Content-Disposition", "value": "attachment; filename=\"Oven Certification Form July 2026.pdf\"" },
         { "key": "X-Content-Type-Options", "value": "nosniff" }
       ]
     },
