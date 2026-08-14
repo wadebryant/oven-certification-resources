@@ -2,6 +2,10 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/team-murph-logo.webp",
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/team-murph-logo.webp"
+    },
+    {
       "source": "/pdfs/oven-fingers-interactive.pdf",
       "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Fingers%20Interactive%20Resource%20July%202026.pdf"
     },
