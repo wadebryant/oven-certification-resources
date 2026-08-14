@@ -37,6 +37,14 @@ let currentPage = 1;
 let renderToken = 0;
 let resizeTimer = null;
 
+let swipeTracking = false;
+let swipeHorizontal = false;
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeStartTime = 0;
+const SWIPE_MIN_DISTANCE = 48;
+const SWIPE_MAX_TIME = 900;
+
 if (!config) {
   loading.hidden = true;
   errorBox.hidden = false;
@@ -176,6 +184,72 @@ async function goToPage(pageNumber) {
   await renderPage(pageNumber);
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
+
+function resetSwipe() {
+  swipeTracking = false;
+  swipeHorizontal = false;
+}
+
+viewer.addEventListener('touchstart', (event) => {
+  if (!pdf || event.touches.length !== 1) {
+    resetSwipe();
+    return;
+  }
+
+  // Keep taps on the interactive PDF's own links working normally.
+  if (event.target.closest('.pdf-link-hitbox')) {
+    resetSwipe();
+    return;
+  }
+
+  const touch = event.touches[0];
+  swipeTracking = true;
+  swipeHorizontal = false;
+  swipeStartX = touch.clientX;
+  swipeStartY = touch.clientY;
+  swipeStartTime = performance.now();
+}, { passive: true });
+
+viewer.addEventListener('touchmove', (event) => {
+  if (!swipeTracking || event.touches.length !== 1) return;
+
+  const touch = event.touches[0];
+  const dx = touch.clientX - swipeStartX;
+  const dy = touch.clientY - swipeStartY;
+
+  if (!swipeHorizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+    swipeHorizontal = true;
+  }
+
+  // Once the gesture is clearly horizontal, keep the browser from treating it as
+  // page scrolling/navigation while preserving ordinary vertical scrolling.
+  if (swipeHorizontal && event.cancelable) event.preventDefault();
+}, { passive: false });
+
+viewer.addEventListener('touchend', (event) => {
+  if (!swipeTracking || event.changedTouches.length !== 1) {
+    resetSwipe();
+    return;
+  }
+
+  const touch = event.changedTouches[0];
+  const dx = touch.clientX - swipeStartX;
+  const dy = touch.clientY - swipeStartY;
+  const elapsed = performance.now() - swipeStartTime;
+  const horizontalEnough = Math.abs(dx) >= SWIPE_MIN_DISTANCE && Math.abs(dx) > Math.abs(dy) * 1.2;
+
+  resetSwipe();
+
+  if (!horizontalEnough || elapsed > SWIPE_MAX_TIME) return;
+
+  if (dx < 0 && currentPage < pdf.numPages) {
+    goToPage(currentPage + 1);
+  } else if (dx > 0 && currentPage > 1) {
+    goToPage(currentPage - 1);
+  }
+}, { passive: true });
+
+viewer.addEventListener('touchcancel', resetSwipe, { passive: true });
 
 async function start() {
   try {
