@@ -7,10 +7,10 @@
   "theme_color": "#006491",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "/team-murph-logo.webp?v=20260814-tmicon",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/webp",
+      "purpose": "any"
     }
   ]
 }
