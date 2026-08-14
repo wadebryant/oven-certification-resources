@@ -1,7 +1,26 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/pdfs/:file", "destination": "/api/pdf?file=:file" }
+  "redirects": [
+    {
+      "source": "/pdfs/oven-fingers-interactive.pdf",
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Fingers%20Interactive%20Resource%20July%202026.pdf",
+      "permanent": false
+    },
+    {
+      "source": "/pdfs/oven-certification-guide.pdf",
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Guide%20July%202026.pdf",
+      "permanent": false
+    },
+    {
+      "source": "/pdfs/oven-certification-form.pdf",
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Form%20July%202026.pdf",
+      "permanent": false
+    },
+    {
+      "source": "/pdfs/oven-certification-faqs.pdf",
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Visit%20FAQs.pdf",
+      "permanent": false
+    }
   ],
   "headers": [
     {
