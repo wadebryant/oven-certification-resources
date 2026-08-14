@@ -4,7 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#006491">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Oven Resources">
   <title>Oven Certification Resources</title>
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -19,13 +22,15 @@
       </div>
     </header>
 
+    <button id="installApp" class="install-app" type="button">Add to Phone Home Screen</button>
+
     <section class="grid" aria-label="Oven certification resources">
       <article class="card featured">
         <div class="eyebrow">Interactive</div>
         <h2>Oven Fingers Resource</h2>
         <p>Tap through oven make and model to find the correct finger arrangement.</p>
         <div class="actions">
-          <a class="btn primary" href="pdfs/oven-fingers-interactive.pdf" target="_blank" rel="noopener">Open Interactive PDF</a>
+          <a class="btn primary" href="pdfs/oven-fingers-interactive.pdf">Open Interactive PDF</a>
           <a class="btn secondary" href="pdfs/oven-fingers-interactive.pdf" download>Download</a>
         </div>
       </article>
@@ -34,7 +39,7 @@
         <h2>Oven Certification Guide</h2>
         <p>Step-by-step guide for performing an oven certification visit.</p>
         <div class="actions">
-          <a class="btn primary" href="pdfs/oven-certification-guide.pdf" target="_blank" rel="noopener">Open PDF</a>
+          <a class="btn primary" href="pdfs/oven-certification-guide.pdf">Open PDF</a>
           <a class="btn secondary" href="pdfs/oven-certification-guide.pdf" download>Download</a>
         </div>
       </article>
@@ -44,7 +49,7 @@
         <p>Fill it out on your phone or computer, then print or save as PDF.</p>
         <div class="actions">
           <a class="btn primary" href="form.html">Fill Out Form</a>
-          <a class="btn secondary" href="pdfs/oven-certification-form.pdf" target="_blank" rel="noopener">Blank PDF</a>
+          <a class="btn secondary" href="pdfs/oven-certification-form.pdf">Blank PDF</a>
         </div>
       </article>
 
@@ -52,13 +57,33 @@
         <h2>Oven Certification FAQs</h2>
         <p>Quick answers about the Oven Certification Program and visit process.</p>
         <div class="actions">
-          <a class="btn primary" href="pdfs/oven-certification-faqs.pdf" target="_blank" rel="noopener">Open PDF</a>
+          <a class="btn primary" href="pdfs/oven-certification-faqs.pdf">Open PDF</a>
           <a class="btn secondary" href="pdfs/oven-certification-faqs.pdf" download>Download</a>
         </div>
       </article>
     </section>
 
-    <p class="note">Tip: use your browser's Share menu to add this page to your phone's Home Screen.</p>
+    <p class="note">The Home Screen button gives device-specific instructions if automatic installation is not available.</p>
   </main>
+
+  <div id="installHelp" class="install-modal" hidden>
+    <div class="install-dialog" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+      <button id="closeInstallHelp" class="modal-close" type="button" aria-label="Close">×</button>
+      <h2 id="installTitle">Add to Home Screen</h2>
+      <div id="iosInstructions" hidden>
+        <p>On iPhone or iPad:</p>
+        <ol>
+          <li>Tap the <strong>Share</strong> button in Safari.</li>
+          <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+          <li>Tap <strong>Add</strong>.</li>
+        </ol>
+      </div>
+      <div id="genericInstructions" hidden>
+        <p>Open your browser menu and choose <strong>Add to Home screen</strong>, <strong>Install app</strong>, or similar wording.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="install.js"></script>
 </body>
 </html>
