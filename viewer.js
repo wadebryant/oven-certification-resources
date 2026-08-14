@@ -36,6 +36,7 @@ let pdf = null;
 let currentPage = 1;
 let renderToken = 0;
 let resizeTimer = null;
+let currentZoom = 1;
 
 let swipeTracking = false;
 let swipeHorizontal = false;
@@ -45,6 +46,14 @@ let swipeStartTime = 0;
 const SWIPE_MIN_DISTANCE = 48;
 const SWIPE_MAX_TIME = 900;
 
+let pinchActive = false;
+let pinchStartDistance = 0;
+let pinchStartZoom = 1;
+let pinchPreviewZoom = 1;
+let pinchFocus = null;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
+
 if (!config) {
   loading.hidden = true;
   errorBox.hidden = false;
@@ -53,6 +62,10 @@ if (!config) {
 
 titleEl.textContent = config.title;
 document.title = `${config.title} | Oven Certification Resources`;
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
 
 function updateStatus() {
   statusEl.textContent = pdf ? `Page ${currentPage} of ${pdf.numPages}` : 'Loading…';
@@ -131,12 +144,12 @@ async function renderPage(pageNumber) {
 
     const base = page.getViewport({ scale: 1 });
     const available = Math.max(280, Math.min(900, viewer.clientWidth - 12));
-    const scale = available / base.width;
-    const viewport = page.getViewport({ scale });
+    const fitScale = available / base.width;
+    const viewport = page.getViewport({ scale: fitScale * currentZoom });
 
-    // iPhones have very high device-pixel ratios. Capping the backing canvas keeps
-    // memory usage low while remaining sharp enough for phone viewing.
-    const dprCap = isIOS ? 1.25 : 1.6;
+    // Only one page is rendered at a time. The backing resolution is capped on
+    // iPhones so pinch zoom stays useful without recreating the Safari memory crash.
+    const dprCap = isIOS ? (currentZoom > 1.5 ? 1.1 : 1.25) : 1.6;
     const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
 
     releaseOldCanvas();
@@ -181,6 +194,7 @@ async function renderPage(pageNumber) {
 }
 
 async function goToPage(pageNumber) {
+  viewer.scrollLeft = 0;
   await renderPage(pageNumber);
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
@@ -190,8 +204,99 @@ function resetSwipe() {
   swipeHorizontal = false;
 }
 
+function touchDistance(touches) {
+  const dx = touches[1].clientX - touches[0].clientX;
+  const dy = touches[1].clientY - touches[0].clientY;
+  return Math.hypot(dx, dy);
+}
+
+function touchMidpoint(touches) {
+  return {
+    x: (touches[0].clientX + touches[1].clientX) / 2,
+    y: (touches[0].clientY + touches[1].clientY) / 2
+  };
+}
+
+function beginPinch(event) {
+  const shell = viewer.querySelector('.single-pdf-page');
+  if (!pdf || !shell || event.touches.length !== 2) return;
+
+  resetSwipe();
+  pinchActive = true;
+  pinchStartDistance = Math.max(1, touchDistance(event.touches));
+  pinchStartZoom = currentZoom;
+  pinchPreviewZoom = currentZoom;
+
+  const midpoint = touchMidpoint(event.touches);
+  const rect = shell.getBoundingClientRect();
+  pinchFocus = {
+    ratioX: clamp((midpoint.x - rect.left) / Math.max(1, rect.width), 0, 1),
+    ratioY: clamp((midpoint.y - rect.top) / Math.max(1, rect.height), 0, 1),
+    clientX: midpoint.x,
+    clientY: midpoint.y
+  };
+
+  shell.style.transformOrigin = `${pinchFocus.ratioX * shell.offsetWidth}px ${pinchFocus.ratioY * shell.offsetHeight}px`;
+  if (event.cancelable) event.preventDefault();
+}
+
+function previewPinch(event) {
+  if (!pinchActive || event.touches.length !== 2) return;
+  if (event.cancelable) event.preventDefault();
+
+  const shell = viewer.querySelector('.single-pdf-page');
+  if (!shell) return;
+
+  const ratio = touchDistance(event.touches) / pinchStartDistance;
+  pinchPreviewZoom = clamp(pinchStartZoom * ratio, MIN_ZOOM, MAX_ZOOM);
+  const visualScale = pinchPreviewZoom / pinchStartZoom;
+  shell.style.transform = `scale(${visualScale})`;
+}
+
+async function finishPinch() {
+  if (!pinchActive) return;
+
+  const focus = pinchFocus;
+  const shell = viewer.querySelector('.single-pdf-page');
+  if (shell) {
+    shell.style.transform = '';
+    shell.style.transformOrigin = '';
+  }
+
+  pinchActive = false;
+  currentZoom = clamp(pinchPreviewZoom, MIN_ZOOM, MAX_ZOOM);
+  pinchFocus = null;
+
+  await renderPage(currentPage);
+
+  if (!focus) return;
+  requestAnimationFrame(() => {
+    const newShell = viewer.querySelector('.single-pdf-page');
+    if (!newShell) return;
+
+    const viewerRect = viewer.getBoundingClientRect();
+    const desiredLeft = focus.ratioX * newShell.offsetWidth - (focus.clientX - viewerRect.left);
+    viewer.scrollLeft = clamp(desiredLeft, 0, Math.max(0, viewer.scrollWidth - viewer.clientWidth));
+
+    const pageTop = newShell.getBoundingClientRect().top + window.scrollY;
+    const desiredTop = pageTop + focus.ratioY * newShell.offsetHeight - focus.clientY;
+    window.scrollTo({ top: Math.max(0, desiredTop), behavior: 'instant' });
+  });
+}
+
 viewer.addEventListener('touchstart', (event) => {
-  if (!pdf || event.touches.length !== 1) {
+  if (event.touches.length === 2) {
+    beginPinch(event);
+    return;
+  }
+
+  if (!pdf || event.touches.length !== 1 || pinchActive) {
+    resetSwipe();
+    return;
+  }
+
+  // When zoomed in, a one-finger drag pans the document instead of changing pages.
+  if (currentZoom > 1.02) {
     resetSwipe();
     return;
   }
@@ -208,10 +313,15 @@ viewer.addEventListener('touchstart', (event) => {
   swipeStartX = touch.clientX;
   swipeStartY = touch.clientY;
   swipeStartTime = performance.now();
-}, { passive: true });
+}, { passive: false });
 
 viewer.addEventListener('touchmove', (event) => {
-  if (!swipeTracking || event.touches.length !== 1) return;
+  if (pinchActive && event.touches.length === 2) {
+    previewPinch(event);
+    return;
+  }
+
+  if (!swipeTracking || event.touches.length !== 1 || currentZoom > 1.02) return;
 
   const touch = event.touches[0];
   const dx = touch.clientX - swipeStartX;
@@ -221,13 +331,17 @@ viewer.addEventListener('touchmove', (event) => {
     swipeHorizontal = true;
   }
 
-  // Once the gesture is clearly horizontal, keep the browser from treating it as
-  // page scrolling/navigation while preserving ordinary vertical scrolling.
   if (swipeHorizontal && event.cancelable) event.preventDefault();
 }, { passive: false });
 
 viewer.addEventListener('touchend', (event) => {
-  if (!swipeTracking || event.changedTouches.length !== 1) {
+  if (pinchActive) {
+    if (event.touches.length < 2) finishPinch();
+    resetSwipe();
+    return;
+  }
+
+  if (!swipeTracking || event.changedTouches.length !== 1 || currentZoom > 1.02) {
     resetSwipe();
     return;
   }
@@ -239,7 +353,6 @@ viewer.addEventListener('touchend', (event) => {
   const horizontalEnough = Math.abs(dx) >= SWIPE_MIN_DISTANCE && Math.abs(dx) > Math.abs(dy) * 1.2;
 
   resetSwipe();
-
   if (!horizontalEnough || elapsed > SWIPE_MAX_TIME) return;
 
   if (dx < 0 && currentPage < pdf.numPages) {
@@ -249,7 +362,18 @@ viewer.addEventListener('touchend', (event) => {
   }
 }, { passive: true });
 
-viewer.addEventListener('touchcancel', resetSwipe, { passive: true });
+viewer.addEventListener('touchcancel', () => {
+  resetSwipe();
+  if (pinchActive) finishPinch();
+}, { passive: true });
+
+// iOS Safari also exposes proprietary gesture events. Blocking its native gesture
+// inside the document keeps the sticky toolbar fixed while our PDF-only pinch runs.
+for (const eventName of ['gesturestart', 'gesturechange', 'gestureend']) {
+  viewer.addEventListener(eventName, (event) => {
+    if (event.cancelable) event.preventDefault();
+  }, { passive: false });
+}
 
 async function start() {
   try {
@@ -274,7 +398,7 @@ prevBtn.addEventListener('click', () => goToPage(currentPage - 1));
 nextBtn.addEventListener('click', () => goToPage(currentPage + 1));
 
 window.addEventListener('resize', () => {
-  if (!pdf) return;
+  if (!pdf || pinchActive) return;
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => renderPage(currentPage), 250);
 });
