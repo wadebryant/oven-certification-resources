@@ -1,4 +1,4 @@
-const CACHE='oven-resources-v4';
+const CACHE='oven-resources-v5';
 const SHELL=['/','/index.html','/styles.css','/install.js','/downloads.js','/form.html','/form.js','/viewer.html','/viewer.css','/viewer.js','/manifest.webmanifest','/icon.svg'];
 
 self.addEventListener('install',event=>{
