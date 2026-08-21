@@ -4,7 +4,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dis
 const docs = {
   fingers: {
     title: 'Oven Fingers Interactive Resource',
-    url: 'https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Fingers%20Interactive%20Resource%20July%202026.pdf'
+    url: 'https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Fingers%20Interactive%20Resource%20August%202026.pdf'
   },
   guide: {
     title: 'Oven Certification Guide',
