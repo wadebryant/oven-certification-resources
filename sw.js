@@ -1,4 +1,4 @@
-const CACHE='oven-resources-v8';
+const CACHE='oven-resources-v9';
 const SHELL=['/','/index.html','/styles.css','/install.js','/downloads.js','/form.html','/form.js','/viewer.html','/viewer.css','/viewer.js','/manifest.webmanifest','/team-murph-logo.webp'];
 
 self.addEventListener('install',event=>{
