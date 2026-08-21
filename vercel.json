@@ -7,7 +7,7 @@
     },
     {
       "source": "/pdfs/oven-fingers-interactive.pdf",
-      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Fingers%20Interactive%20Resource%20July%202026.pdf"
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Fingers%20Interactive%20Resource%20August%202026.pdf"
     },
     {
       "source": "/pdfs/oven-certification-guide.pdf",
@@ -23,7 +23,7 @@
     },
     {
       "source": "/downloads/oven-fingers-interactive.pdf",
-      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Fingers%20Interactive%20Resource%20July%202026.pdf"
+      "destination": "https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Fingers%20Interactive%20Resource%20August%202026.pdf"
     },
     {
       "source": "/downloads/oven-certification-guide.pdf",
@@ -51,7 +51,7 @@
       "source": "/downloads/oven-fingers-interactive.pdf",
       "headers": [
         { "key": "Content-Type", "value": "application/pdf" },
-        { "key": "Content-Disposition", "value": "attachment; filename=\"Oven Fingers Interactive Resource July 2026.pdf\"" },
+        { "key": "Content-Disposition", "value": "attachment; filename=\"Oven Fingers Interactive Resource August 2026.pdf\"" },
         { "key": "Cache-Control", "value": "no-store, max-age=0" },
         { "key": "X-Vercel-Enable-Rewrite-Caching", "value": "0" },
         { "key": "X-Content-Type-Options", "value": "nosniff" }
