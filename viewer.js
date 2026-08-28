@@ -17,6 +17,10 @@ const docs = {
   faqs: {
     title: 'Oven Certification FAQs',
     url: 'https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Oven%20Certification%20Visit%20FAQs.pdf'
+  },
+  guidelines: {
+    title: 'Approved Oven Guidelines',
+    url: 'https://raw.githubusercontent.com/wadebryant/oven-certification-resources/main/Approved%20Oven%20Guidelines.pdf'
   }
 };
 
